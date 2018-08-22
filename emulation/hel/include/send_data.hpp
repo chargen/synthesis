@@ -10,6 +10,7 @@
 #include "can_motor_controller.hpp"
 #include "digital_system.hpp"
 #include "mxp_data.hpp"
+#include "pcm.hpp"
 #include "pwm_system.hpp"
 #include "relay_system.hpp"
 
@@ -77,6 +78,12 @@ namespace hel{
         std::map<uint32_t, CANMotorController> can_motor_controllers;
 
         /**
+         * \brief All PCM data
+         */
+
+        PCM pcm;
+
+        /**
          * \brief Update the serialized_data with the PWM headers
          */
 
@@ -111,6 +118,12 @@ namespace hel{
          */
 
         void serializeCANMotorControllers();
+
+        /**
+         * \brief Update the serialized_data with the PCM
+         */
+
+        void serializePCM();
 
     public:
         /**

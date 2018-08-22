@@ -6,10 +6,9 @@ using namespace nFPGA;
 using namespace nRoboRIO_FPGANamespace;
 
 namespace hel{
-    constexpr char ZEROED_SERIALIZATION_DATA[] = "{\"roborio\":{\"pwm_hdrs\":[0.000000,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000],\"relays\":[\"OFF\",\"OFF\",\"OFF\",\"OFF\"],\"analog_outputs\":[0.000000,0.000000],\"digital_mxp\":[{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000}],\"digital_hdrs\":[0,0,0,0,0,0,0,0,0,0],\"can_motor_controllers\":[]}}\x1B"; //TODO replace with shallow and deep versions
+    constexpr char ZEROED_SERIALIZATION_DATA[] = "{\"roborio\":{\"pwm_hdrs\":[0.000000,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000,0.000000],\"relays\":[\"OFF\",\"OFF\",\"OFF\",\"OFF\"],\"analog_outputs\":[0.000000,0.000000],\"digital_mxp\":[{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000},{\"config\":\"DI\", \"value\":0.000000}],\"digital_hdrs\":[0,0,0,1,0,0,0,0,0,0],\"can_motor_controllers\":[],\"pcm\":{\"solenoids\":[0,0,0,0,0,0,0,0]}}}\x1B"; //TODO replace with shallow and deep versions
 
-    SendData::SendData():serialized_data(""),new_data(true),enabled(false),pwm_hdrs(0.0), relays(RelaySystem::State::OFF), analog_outputs(0.0), digital_mxp({}), digital_hdrs(false), can_motor_controllers({}){}
-
+    SendData::SendData():serialized_data(""),new_data(true),enabled(false),pwm_hdrs(0.0), relays(RelaySystem::State::OFF), analog_outputs(0.0), digital_mxp({}), digital_hdrs(false), can_motor_controllers({}),pcm(){}
 
     bool SendData::hasNewData()const{
         return new_data;
@@ -49,6 +48,7 @@ namespace hel{
             }
         }
         can_motor_controllers = roborio.can_motor_controllers;
+        pcm = roborio.pcm;
         new_data = true;
     }
 
@@ -88,7 +88,8 @@ namespace hel{
         s += "analog_outputs:" + asString(analog_outputs, std::function<std::string(double)>(static_cast<std::string(*)(double)>(std::to_string))) + ", ";
         s += "digital_mxp:" + asString(digital_mxp, std::function<std::string(MXPData)>(&MXPData::toString)) + ", ";
         s += "digital_hdrs:" + asString(digital_hdrs, std::function<std::string(bool)>(static_cast<std::string(*)(bool)>(asString))) + ", ";
-        s += "can_motor_controllers:" + asString(can_motor_controllers, std::function<std::string(std::pair<uint32_t,CANMotorController>)>([&](std::pair<uint32_t, CANMotorController> a){ return "[" + std::to_string(a.first) + ", " + a.second.toString() + "]";}));
+        s += "can_motor_controllers:" + asString(can_motor_controllers, std::function<std::string(std::pair<uint32_t,CANMotorController>)>([&](std::pair<uint32_t, CANMotorController> a){ return "[" + std::to_string(a.first) + ", " + a.second.toString() + "]";})) + ", ";
+        s += "pcm:" + pcm.toString();
         s += ")";
         return s;
     }
@@ -137,6 +138,10 @@ namespace hel{
             );
     }
 
+    void SendData::serializePCM(){
+        serialized_data += "\"pcm\":" + pcm.serialize();
+    }
+
     std::string SendData::serializeShallow(){
         if(!new_data){
             return serialized_data;
@@ -151,6 +156,8 @@ namespace hel{
         serializePWMHdrs();
         serialized_data += ",";
         serializeCANMotorControllers();
+        serialized_data += ",";
+        serializePCM();
         serialized_data += "}}";
         serialized_data += JSON_PACKET_SUFFIX;
         return serialized_data;
@@ -178,6 +185,8 @@ namespace hel{
         serializeDigitalHdrs();
         serialized_data += ",";
         serializeCANMotorControllers();
+        serialized_data += ",";
+        serializePCM();
         serialized_data += "}}";
         serialized_data += JSON_PACKET_SUFFIX;
         return serialized_data;
